@@ -49,9 +49,4 @@ void xTS_PacketHeader::Print() const
 	m_SB, m_E, m_S, m_T, m_PID, m_TSC, m_AFC, m_CC);
 }
 
-// 00 reserved for future use
-// 01 no adaptation field, only payload
-// 10 adaptation field only, no payload
-// 11 adaptation field followed by payload
-
 //=============================================================================================================================================================================

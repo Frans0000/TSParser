@@ -9,15 +9,8 @@
 
 int main(int argc, char* argv[], char* envp[])
 {
-    // TODO - open file
-    // TODO - check if file if opened
 
-    //if(argc != 2)
-    //{
-    //  return EXIT_FAILURE;
-    //}
-
-    FILE* file = fopen(argv[1], "rb"); //argv[1]
+    FILE* file = fopen(argv[1], "rb");
 
     if (!file)
     {
@@ -36,7 +29,6 @@ int main(int argc, char* argv[], char* envp[])
 
     while (fread(PacketBuffer, 1, PacketSize, file) == PacketSize)
     {
-        // TODO - read from file
         TS_PacketHeader.Reset();
         if (TS_PacketHeader.Parse(PacketBuffer) == NOT_VALID) {
             fprintf(stderr, "Invalid packet at ID: %d\n", TS_PacketId);
@@ -52,7 +44,6 @@ int main(int argc, char* argv[], char* envp[])
         }
     }
 
-    // TODO - close file
     fclose(file);
 
     return EXIT_SUCCESS;

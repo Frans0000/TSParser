@@ -67,7 +67,6 @@ public:
   };
 
 protected:
-  //TODO - header fields, e.g.:
     uint8_t  m_SB;
     uint8_t m_E;
     uint8_t m_S;
@@ -83,7 +82,6 @@ public:
   void     Print() const;
 
 public:
-  //TODO - direct acces to header field value, e.g.:
   uint8_t  getSyncByte() const { return m_SB; } // Sync byte                     (SB ) :  8 bits
   uint8_t  getE() const { return m_E; }         // Transport error indicator    (E  ) :  1 bit
   uint8_t  getS() const { return m_S; }         // Payload unit start indicator (S  ) :  1 bit
@@ -94,7 +92,6 @@ public:
   uint8_t  getCC() const { return m_CC; }       // Continuity counter           (CC ) :  4 bits
 
 public:
-  //TODO - derrived informations
     bool     hasAdaptationField() const { return (m_AFC == 2 || m_AFC == 3); };
     bool     hasPayload() const { return (m_AFC == 1 || m_AFC == 3); };
 };
