@@ -51,3 +51,45 @@ void xTS_PacketHeader::Print() const
 }
 
 //=============================================================================================================================================================================
+//AF PARSER SECTION
+//=============================================================================================================================================================================
+
+/// @brief Reset - reset all TS packet header fields
+void xTS_AdaptationField::Reset()
+{
+	m_AdaptationFieldControl = 0;
+	m_AdaptationFieldLength = 0;
+	m_DC = m_RA = m_SP = m_PR = m_OR = m_SF = m_TP = m_EX = 0;
+}
+/**
+@brief Parse adaptation field
+@param PacketBuffer is pointer to buffer containing TS packet
+@param AdaptationFieldControl is value of Adaptation Field Control field of
+corresponding TS packet header
+@return Number of parsed bytes (length of AF or -1 on failure)
+*/
+int32_t xTS_AdaptationField::Parse(const uint8_t* PacketBuffer, uint8_t AdaptationFieldControl)
+{
+	m_AdaptationFieldControl = AdaptationFieldControl;
+	m_AdaptationFieldLength = PacketBuffer[4]; // because header is 32 bits long
+	
+	uint8_t AF = PacketBuffer[5];
+
+	m_DC = (AF & 0b10000000) >> 7;
+	m_RA = (AF & 0b01000000) >> 6;
+	m_SP = (AF & 0b00100000) >> 5;
+	m_PR = (AF & 0b00010000) >> 4;
+	m_OR = (AF & 0b00001000) >> 3;
+	m_SF = (AF & 0b00000100) >> 2;
+	m_TP = (AF & 0b00000010) >> 1;
+	m_EX = (AF & 0b00000001);
+	return 1; // parsed AF
+
+}
+/// @brief Print all TS packet header fields
+void xTS_AdaptationField::Print() const
+{
+	printf("AF: L=%3d DC=%d RA=%d SP=%d PR=%d OR=%d SF=%d TP=%d EX=%d",
+		m_AdaptationFieldLength, m_DC, m_RA, m_SP, m_PR, m_OR, m_SF, m_TP, m_EX);
+}
+//=============================================================================================================================================================================

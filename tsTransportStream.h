@@ -96,5 +96,40 @@ public:
     bool     hasPayload() const { return (m_AFC == 1 || m_AFC == 3); };
 };
 
+class xTS_AdaptationField
+{
+protected:
+    //setup
+    uint8_t m_AdaptationFieldControl;
+    //mandatory fields
+    uint8_t m_AdaptationFieldLength; //nuber of bytes in the adaptattion field following this byte
+    uint8_t m_DC; // indicates that the discontinuity state is true (1)
+    uint8_t m_RA; // TS containts some information to aid random access (1)
+    uint8_t m_SP; // the payload has a higher priority than other (1)
+    uint8_t m_PR; // Program Clock Reference flag
+    uint8_t m_OR; // Original Program Clock Reference flag
+    uint8_t m_SF; // Splicing point flag
+    uint8_t m_TP; // Transport private data flag
+    uint8_t m_EX; // Adaptation field extension flag 
+    
+
+
+    //optional fields - PCR skip for now
+public:
+    void Reset();
+    int32_t Parse(const uint8_t* PacketBuffer, uint8_t AdaptationFieldControl);
+    void Print() const;
+public:
+    //mandatory fields
+    uint8_t getAdaptationFieldLength() const {
+        return
+            m_AdaptationFieldLength;
+    }
+    //derived values
+    //uint32_t getNumBytes () const { }
+};
+
+
+
 
 //=============================================================================================================================================================================

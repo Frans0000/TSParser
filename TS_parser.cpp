@@ -26,6 +26,8 @@ int main(int argc, char* argv[], char* envp[])
 
     uint8_t PacketBuffer[PacketSize];
 
+    //AF SECTION
+    xTS_AdaptationField TS_AdaptationField;
 
     while (fread(PacketBuffer, 1, PacketSize, file) == PacketSize)
     {
@@ -36,10 +38,21 @@ int main(int argc, char* argv[], char* envp[])
 
         printf("%010d ", TS_PacketId);
         TS_PacketHeader.Print();
+
+        if (TS_PacketHeader.hasAdaptationField()) {
+            TS_AdaptationField.Reset();
+            TS_AdaptationField.Parse(PacketBuffer, TS_PacketHeader.getAFC());
+            printf(" ");
+            TS_AdaptationField.Print();
+        }
+
         printf("\n");
 
+        
+
+
         TS_PacketId++;
-        if (TS_PacketId > 15) {
+        if (TS_PacketId > 33) {
             break;
         }
     }
