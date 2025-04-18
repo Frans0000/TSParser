@@ -36,25 +36,22 @@ int main(int argc, char* argv[], char* envp[])
             fprintf(stderr, "Invalid packet at ID: %d\n", TS_PacketId);
         }
 
-        printf("%010d ", TS_PacketId);
-        TS_PacketHeader.Print();
+
 
         if (TS_PacketHeader.hasAdaptationField()) {
             TS_AdaptationField.Reset();
             TS_AdaptationField.Parse(PacketBuffer, TS_PacketHeader.getAFC());
-            printf(" ");
-            TS_AdaptationField.Print();
+            if ((TS_PacketHeader.getPID() == 174)) {
+                printf("%010d ", TS_PacketId);
+                TS_PacketHeader.Print();
+
+                printf(" ");
+                TS_AdaptationField.Print();
+                printf("\n");
+            }
         }
-
-        printf("\n");
-
-        
-
-
         TS_PacketId++;
-        if (TS_PacketId > 33) {
-            break;
-        }
+
     }
 
     fclose(file);

@@ -22,7 +22,7 @@ void xTS_PacketHeader::Reset()
 /**
   @brief Parse all TS packet header fields
   @param Input is pointer to buffer containing TS packet
-  @return Number of parsed bytes (4 on success, -1 on failure) 
+  @return Number of parsed bytes (4 on success, -1 on failure)
  */
 int32_t xTS_PacketHeader::Parse(const uint8_t* Input)
 {
@@ -47,7 +47,7 @@ int32_t xTS_PacketHeader::Parse(const uint8_t* Input)
 void xTS_PacketHeader::Print() const
 {
 	printf("SB=%d E=%d S=%d T=%d PID=%d TSC=%d AFC=%d CC=%d",
-	m_SB, m_E, m_S, m_T, m_PID, m_TSC, m_AFC, m_CC);
+		m_SB, m_E, m_S, m_T, m_PID, m_TSC, m_AFC, m_CC);
 }
 
 //=============================================================================================================================================================================
@@ -59,7 +59,8 @@ void xTS_AdaptationField::Reset()
 {
 	m_AdaptationFieldControl = 0;
 	m_AdaptationFieldLength = 0;
-	m_DC = m_RA = m_SP = m_PR = m_OR = m_SF = m_TP = m_EX = 0;
+	m_Discontinuity = m_RandomAccess = m_ElementaryStreamPriority = m_PCR_flag = m_OPCR_flag = m_SplicingPointFlag = m_TransportPrivateDataFlag = m_AdaptationFieldExtensionFlag = 0;
+	PCR_base = OPCR_base = PCR_extension = OPCR_extension = 0;
 }
 /**
 @brief Parse adaptation field
@@ -72,24 +73,94 @@ int32_t xTS_AdaptationField::Parse(const uint8_t* PacketBuffer, uint8_t Adaptati
 {
 	m_AdaptationFieldControl = AdaptationFieldControl;
 	m_AdaptationFieldLength = PacketBuffer[4]; // because header is 32 bits long
-	
+
 	uint8_t AF = PacketBuffer[5];
 
-	m_DC = (AF & 0b10000000) >> 7;
-	m_RA = (AF & 0b01000000) >> 6;
-	m_SP = (AF & 0b00100000) >> 5;
-	m_PR = (AF & 0b00010000) >> 4;
-	m_OR = (AF & 0b00001000) >> 3;
-	m_SF = (AF & 0b00000100) >> 2;
-	m_TP = (AF & 0b00000010) >> 1;
-	m_EX = (AF & 0b00000001);
-	return 1; // parsed AF
+	m_Discontinuity = (AF & 0b10000000) >> 7;
+	m_RandomAccess = (AF & 0b01000000) >> 6;
+	m_ElementaryStreamPriority = (AF & 0b00100000) >> 5;
+	m_PCR_flag = (AF & 0b00010000) >> 4;
+	m_OPCR_flag = (AF & 0b00001000) >> 3;
+	m_SplicingPointFlag = (AF & 0b00000100) >> 2;
+	m_TransportPrivateDataFlag = (AF & 0b00000010) >> 1;
+	m_AdaptationFieldExtensionFlag = (AF & 0b00000001);
 
+	// return 1; // parsed AF
+	uint8_t offset = 6;
+
+	if (m_PCR_flag == 1) {
+		PCR_base = PCR_base | (PacketBuffer[offset] << 25);
+		PCR_base = PCR_base | (PacketBuffer[offset + 1] << 17);
+		PCR_base = PCR_base | (PacketBuffer[offset + 2] << 9);
+		PCR_base = PCR_base | (PacketBuffer[offset + 3] << 1);
+		PCR_base = PCR_base | ((PacketBuffer[offset + 4] >> 7) & 0b1);
+
+		PCR_extension = (PacketBuffer[offset + 4] & 0b1) << 8;
+		PCR_extension = PCR_extension | PacketBuffer[offset + 5];
+		
+		PCR = (PCR_base * xTS::BaseToExtendedClockMultiplier) + PCR_extension;
+		
+		offset = offset + 6;
+	}
+
+	if (m_OPCR_flag == 1) {
+		OPCR_base = OPCR_base | (PacketBuffer[offset] << 25);
+		OPCR_base = OPCR_base | (PacketBuffer[offset + 1] << 17);
+		OPCR_base = OPCR_base | (PacketBuffer[offset + 2] << 9);
+		OPCR_base = OPCR_base | (PacketBuffer[offset + 3] << 1);
+		OPCR_base = OPCR_base | ((PacketBuffer[offset + 4] >> 7) & 0b1);
+
+		OPCR_extension = (PacketBuffer[offset + 4] & 0b1) << 8;
+		OPCR_extension = OPCR_extension | PacketBuffer[offset + 5];
+
+		OPCR = (OPCR_base * xTS::BaseToExtendedClockMultiplier) + OPCR_extension;
+		offset = offset + 6;
+	}
+
+	if (m_SplicingPointFlag == 1) {
+		SpliceCountDown = PacketBuffer[offset];
+		offset = offset + 1;
+	}
+
+	if (m_TransportPrivateDataFlag) {
+		uint8_t TransportPrivateDataLength = PacketBuffer[offset];
+		offset = offset + 2 + TransportPrivateDataLength;
+	}
+
+	if (m_AdaptationFieldExtensionFlag) {
+		uint8_t AdaptationFieldExtensionLength = PacketBuffer[offset];
+		offset = offset + 1 + AdaptationFieldExtensionLength;
+	}
+
+
+	//calculating stuffing bytes (-1 cuz offset -4 cuz header)
+	StuffingBytes = m_AdaptationFieldLength - (offset -1 - 4);
+
+	return 1;
 }
 /// @brief Print all TS packet header fields
 void xTS_AdaptationField::Print() const
 {
 	printf("AF: L=%3d DC=%d RA=%d SP=%d PR=%d OR=%d SF=%d TP=%d EX=%d",
-		m_AdaptationFieldLength, m_DC, m_RA, m_SP, m_PR, m_OR, m_SF, m_TP, m_EX);
+		m_AdaptationFieldLength, m_Discontinuity, m_RandomAccess, m_ElementaryStreamPriority, m_PCR_flag, m_OPCR_flag, m_SplicingPointFlag, m_TransportPrivateDataFlag, m_AdaptationFieldExtensionFlag);
+
+	if (m_PCR_flag == 1) {
+		double PCR_time = (double)PCR / xTS::ExtendedClockFrequency_Hz;
+		printf(" PCR=%08u (Time=%.6lfs)", PCR, PCR_time);
+	}
+
+	if (m_OPCR_flag == 1) {
+		double OPCR_time = (double)OPCR / xTS::ExtendedClockFrequency_Hz;
+		printf(" OPCR=%08X (Time=%.6lfs)", OPCR, OPCR_time);
+	}
+
+	if (StuffingBytes > 0) {
+		printf(" Stuffing=%u", StuffingBytes);
+	}
+	else
+	{
+		printf("Stuffing = 0");
+	}
+
 }
 //=============================================================================================================================================================================
